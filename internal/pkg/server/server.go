@@ -1,22 +1,20 @@
 package server
 
 import (
-	"bufio"
-	"fmt"
 	"golang.org/x/net/netutil"
-	"io"
 	"net"
-	"strings"
 )
 
 type listening struct {
 	listener        net.Listener
 	connectionCount int
+	h               handleConn
 }
 
 func newServer(connectionCount int) *listening {
 	return &listening{
 		connectionCount: connectionCount,
+		h:               &handler{},
 	}
 }
 
@@ -39,25 +37,6 @@ func (l *listening) Process() (err error) {
 		return err
 	}
 
-	go func(c net.Conn) {
-		reader := bufio.NewReader(c)
-		for {
-			fmt.Println("Reading...")
-			//if err = conn.SetReadDeadline(time.Now().Add(1* time.Second)); err!=nil{
-			//	return err
-			//}
-
-			msg, err := reader.ReadString('\n')
-			if err != nil {
-				if err == io.EOF || err == io.ErrClosedPipe {
-					return
-				}
-				c.Close()
-				return
-			}
-			fmt.Println("msg:'" + strings.TrimRight(msg, "\n") + "'")
-			fmt.Println("-----")
-		}
-	}(conn)
+	go l.h.handle(conn)
 	return err
 }

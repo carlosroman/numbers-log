@@ -2,7 +2,6 @@ package server
 
 import (
 	"errors"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"net"
@@ -29,28 +28,26 @@ func TestStopReturnsError(t *testing.T) {
 
 func TestProcess(t *testing.T) {
 	ml := new(mockListener)
+	hm := new(mockHandleConn)
 	l := &listening{
 		listener: ml,
+		h:        hm,
 	}
 	s, c := net.Pipe()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Println("writing...")
-		_, err := s.Write([]byte("bob\ncarlos\n"))
-		assert.NoError(t, err, "error writing")
-		_, err = s.Write([]byte("dave\n"))
-		assert.NoError(t, err, "error writing")
-	}()
-	go func() {
-		wg.Wait()
+	defer func() {
 		assert.NoError(t, s.Close())
 		assert.NoError(t, c.Close())
 	}()
-	fmt.Println("reading...")
-	ml.On("Accept").Return(c, nil)
+	ml.On("Accept").Return(c, nil).Once()
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	hm.On("handle", c).Return(nil).Run(func(args mock.Arguments) {
+		wg.Done()
+	})
 	assert.NoError(t, l.Process(), "error trying to process connection")
+	wg.Wait()
+	ml.AssertExpectations(t)
+	hm.AssertExpectations(t)
 }
 
 type mockListener struct {
@@ -70,4 +67,12 @@ func (m *mockListener) Close() error {
 func (m *mockListener) Addr() net.Addr {
 	args := m.Called()
 	return args.Get(0).(net.Addr)
+}
+
+type mockHandleConn struct {
+	mock.Mock
+}
+
+func (m *mockHandleConn) handle(conn net.Conn) error {
+	return m.Called(conn).Error(0)
 }
