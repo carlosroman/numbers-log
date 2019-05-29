@@ -10,41 +10,49 @@ import (
 
 func Test_handler_handle(t *testing.T) {
 	type args struct {
-		conn net.Conn
+		conn, in net.Conn
+	}
+	a := func() args {
+		s, c := net.Pipe()
+		return args{
+			conn: c,
+			in:   s,
+		}
 	}
 	tests := []struct {
 		name string
-		h    *handler
 		args args
 	}{
-		// TODO: Add test cases.
+		{
+			name: "SimpleTest",
+			args: a(),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := &handler{}
-			h.handle(tt.args.conn)
+			wg := sync.WaitGroup{}
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				fmt.Println("writing...")
+				_, err := tt.args.in.Write([]byte("bob\ncarlos\n"))
+				assert.NoError(t, err, "error writing")
+				_, err = tt.args.in.Write([]byte("dave\n"))
+				assert.NoError(t, err, "error writing")
+			}()
+
+			done := make(chan bool)
+			go func() {
+				wg.Wait()
+				assert.NoError(t, tt.args.in.Close())
+				assert.NoError(t, tt.args.conn.Close())
+				done <- true
+			}()
+
+			h := new(handler)
+			err := h.handle(tt.args.conn)
+			assert.NoError(t, err)
+			assert.True(t, <-done)
 		})
 	}
-}
-
-func TestProcessHandler(t *testing.T) {
-	h := new(handler)
-	s, c := net.Pipe()
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		fmt.Println("writing...")
-		_, err := s.Write([]byte("bob\ncarlos\n"))
-		assert.NoError(t, err, "error writing")
-		_, err = s.Write([]byte("dave\n"))
-		assert.NoError(t, err, "error writing")
-	}()
-	go func() {
-		wg.Wait()
-		assert.NoError(t, s.Close())
-		assert.NoError(t, c.Close())
-	}()
-	fmt.Println("reading...")
-	assert.NoError(t, h.handle(c), "error trying to process connection")
 }
