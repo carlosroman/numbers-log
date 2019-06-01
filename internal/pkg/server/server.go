@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"golang.org/x/net/netutil"
 	"net"
 )
@@ -9,17 +10,21 @@ type listening struct {
 	listener        net.Listener
 	connectionCount int
 	h               handleConn
+	host            string
+	port            int
 }
 
-func newServer(connectionCount int) *listening {
+func newServer(connectionCount int, host string, port int) *listening {
 	return &listening{
 		connectionCount: connectionCount,
 		h:               &handler{},
+		host:            host,
+		port:            port,
 	}
 }
 
 func (l *listening) Start() (err error) {
-	listener, err := net.Listen("tcp", ":4000")
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%v", l.host, l.port))
 	if err != nil {
 		return err
 	}

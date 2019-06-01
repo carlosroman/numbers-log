@@ -10,7 +10,7 @@ import (
 )
 
 func TestStartAndStop(t *testing.T) {
-	l := newServer(5)
+	l := newServer(5, "127.0.0.1", 0)
 	defer func() {
 		assert.NoError(t, l.Stop())
 	}()
@@ -18,7 +18,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestStopReturnsError(t *testing.T) {
-	l := newServer(1)
+	l := newServer(1, "127.0.0.1", 0)
 	ml := new(mockListener)
 	l.listener = ml
 	expectedErr := errors.New("some error")
