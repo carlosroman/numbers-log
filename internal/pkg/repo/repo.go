@@ -29,7 +29,7 @@ type checkerImplList struct {
 	tm []bool
 }
 
-func newAltChecker() *checkerImplList {
+func NewRepo() *checkerImplList {
 	return &checkerImplList{
 		tm: make([]bool, 1000000000),
 	}

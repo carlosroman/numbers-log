@@ -3,16 +3,29 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"github.com/carlosroman/numbers-log/internal/pkg/repo"
 	"io"
 	"net"
+	"strconv"
 	"strings"
 )
+
+type add interface {
+	Add(n uint32) (unique bool)
+}
 
 type handleConn interface {
 	handle(conn net.Conn) error
 }
 
 type handler struct {
+	repo add
+}
+
+func newHandler() handleConn {
+	return &handler{
+		repo: repo.NewRepo(),
+	}
 }
 
 func (h *handler) handle(conn net.Conn) error {
@@ -31,7 +44,14 @@ func (h *handler) handle(conn net.Conn) error {
 			conn.Close()
 			return err
 		}
-		fmt.Println("msg:'" + strings.TrimRight(msg, "\n") + "'")
+		v := strings.TrimRight(msg, "\n")
+		fmt.Printf("msg: '%s'\n", v)
+		i, err := strconv.ParseUint(v, 10, 32)
+		if err != nil {
+			continue
+		}
+		fmt.Printf("i: '%v'\n", i)
+		h.repo.Add(uint32(i))
 		fmt.Println("-----")
 	}
 }

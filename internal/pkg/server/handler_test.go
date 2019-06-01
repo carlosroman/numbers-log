@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"net"
 	"sync"
 	"testing"
@@ -35,9 +36,9 @@ func Test_handler_handle(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				fmt.Println("writing...")
-				_, err := tt.args.in.Write([]byte("bob\ncarlos\n"))
+				_, err := tt.args.in.Write([]byte("000000000\n000000001\n"))
 				assert.NoError(t, err, "error writing")
-				_, err = tt.args.in.Write([]byte("dave\n"))
+				_, err = tt.args.in.Write([]byte("000000002\n"))
 				assert.NoError(t, err, "error writing")
 			}()
 
@@ -50,9 +51,24 @@ func Test_handler_handle(t *testing.T) {
 			}()
 
 			h := new(handler)
+			mrepo := new(mockRepo)
+			h.repo = mrepo
+			mrepo.On("Add", uint32(0)).Return(false)
+			mrepo.On("Add", uint32(1)).Return(false)
+			mrepo.On("Add", uint32(2)).Return(false)
 			err := h.handle(tt.args.conn)
 			assert.NoError(t, err)
 			assert.True(t, <-done)
+			mrepo.AssertExpectations(t)
 		})
 	}
+}
+
+type mockRepo struct {
+	mock.Mock
+}
+
+func (m *mockRepo) Add(n uint32) (unique bool) {
+	args := m.Called(n)
+	return args.Bool(0)
 }

@@ -21,12 +21,12 @@ func TestAddDuplicate(t *testing.T) {
 }
 
 func TestAddOkayAlt(t *testing.T) {
-	c := newAltChecker()
+	c := NewRepo()
 	testAddOkay(t, c)
 }
 
 func TestAddDuplicateAlt(t *testing.T) {
-	c := newAltChecker()
+	c := NewRepo()
 	testAddDuplicate(t, c)
 }
 
@@ -52,7 +52,7 @@ func BenchmarkAdd(b *testing.B) {
 func BenchmarkAddAlt(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		c := newAltChecker()
+		c := NewRepo()
 		for a := uint32(0); a < (1000000000 / 100); a++ {
 			assert.Equal(b, true, c.Add(a))
 		}
