@@ -51,6 +51,10 @@ func (h *handler) handle(conn net.Conn) error {
 			return err
 		}
 		v := strings.TrimRight(msg, "\n")
+		if len(v) != 9 {
+			continue
+		}
+
 		fmt.Printf("msg: '%s'\n", v)
 		i, err := strconv.ParseUint(v, 10, 32)
 		if err != nil {

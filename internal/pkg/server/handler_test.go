@@ -55,6 +55,28 @@ func Test_handler_handle(t *testing.T) {
 				assert.NoError(t, err, "error writing")
 			},
 		},
+		{
+			name: "Noop",
+			args: a(),
+			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
+				m = new(mockRepo)
+				m.On("Add", uint32(0)).Return(true)
+
+				l = new(mockLog)
+				l.On("Info", "000000000", []zapcore.Field(nil))
+
+				return m, newHandler(m, l), l
+			},
+			write: func(in net.Conn) {
+				fmt.Println("writing...")
+				_, err := in.Write([]byte("000000000\n"))
+				assert.NoError(t, err, "error writing")
+				_, err = in.Write([]byte("0000000001\n"))
+				assert.NoError(t, err, "error writing")
+				_, err = in.Write([]byte("00000002\n"))
+				assert.NoError(t, err, "error writing")
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
