@@ -69,11 +69,17 @@ func Test_handler_handle(t *testing.T) {
 			},
 			write: func(in net.Conn) {
 				fmt.Println("writing...")
+				// already present
 				_, err := in.Write([]byte("000000000\n"))
 				assert.NoError(t, err, "error writing")
+				// too long
 				_, err = in.Write([]byte("0000000001\n"))
 				assert.NoError(t, err, "error writing")
+				// too short
 				_, err = in.Write([]byte("00000002\n"))
+				assert.NoError(t, err, "error writing")
+				// not a number
+				_, err = in.Write([]byte("abcdefghi\n"))
 				assert.NoError(t, err, "error writing")
 			},
 		},
