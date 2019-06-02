@@ -3,7 +3,7 @@ package server
 import (
 	"bufio"
 	"fmt"
-	"github.com/carlosroman/numbers-log/internal/pkg/repo"
+	"go.uber.org/zap"
 	"io"
 	"net"
 	"strconv"
@@ -14,17 +14,23 @@ type add interface {
 	Add(n uint32) (unique bool)
 }
 
+type log interface {
+	Info(msg string, fields ...zap.Field)
+}
+
 type handleConn interface {
 	handle(conn net.Conn) error
 }
 
 type handler struct {
-	repo add
+	repo   add
+	logger log
 }
 
-func newHandler() handleConn {
+func newHandler(repo add, logger log) handleConn {
 	return &handler{
-		repo: repo.NewRepo(),
+		repo:   repo,
+		logger: logger,
 	}
 }
 
@@ -52,6 +58,7 @@ func (h *handler) handle(conn net.Conn) error {
 		}
 		fmt.Printf("i: '%v'\n", i)
 		h.repo.Add(uint32(i))
+		h.logger.Info(v)
 		fmt.Println("-----")
 	}
 }
