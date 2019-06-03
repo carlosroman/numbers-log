@@ -6,9 +6,10 @@ jobs:
       - image: circleci/golang:1.12
     steps:
       - checkout
+      - run: chmod +x scripts/coverage.sh
       - run:
           name: Testing
-          command: make test
+          command: make test-ci
       - run:
           name: Build
           command: make build

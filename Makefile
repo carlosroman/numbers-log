@@ -7,6 +7,10 @@ fmt :
 	@go fmt \
 		./...
 
+.PHONY : test-ci
+test-ci:
+    @scripts/coverage.sh
+
 .PHONY : test
 test :
 	@go test \
