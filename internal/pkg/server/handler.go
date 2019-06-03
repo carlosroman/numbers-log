@@ -27,7 +27,7 @@ type handler struct {
 	logger log
 }
 
-func newHandler(repo add, logger log) handleConn {
+func NewHandler(repo add, logger log) handleConn {
 	return &handler{
 		repo:   repo,
 		logger: logger,
@@ -61,8 +61,9 @@ func (h *handler) handle(conn net.Conn) error {
 			continue
 		}
 		fmt.Printf("i: '%v'\n", i)
-		h.repo.Add(uint32(i))
-		h.logger.Info(v)
+		if h.repo.Add(uint32(i)) {
+			h.logger.Info(v)
+		}
 		fmt.Println("-----")
 	}
 }

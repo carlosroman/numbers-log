@@ -36,16 +36,16 @@ func Test_handler_handle(t *testing.T) {
 			args: a(),
 			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
 				m = new(mockRepo)
-				m.On("Add", uint32(0)).Return(false)
-				m.On("Add", uint32(1)).Return(false)
-				m.On("Add", uint32(2)).Return(false)
+				m.On("Add", uint32(0)).Return(true)
+				m.On("Add", uint32(1)).Return(true)
+				m.On("Add", uint32(2)).Return(true)
 
 				l = new(mockLog)
 				l.On("Info", "000000000", []zapcore.Field(nil))
 				l.On("Info", "000000001", []zapcore.Field(nil))
 				l.On("Info", "000000002", []zapcore.Field(nil))
 
-				return m, newHandler(m, l), l
+				return m, NewHandler(m, l), l
 			},
 			write: func(in net.Conn) {
 				fmt.Println("writing...")
@@ -60,12 +60,10 @@ func Test_handler_handle(t *testing.T) {
 			args: a(),
 			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
 				m = new(mockRepo)
-				m.On("Add", uint32(0)).Return(true)
+				m.On("Add", uint32(0)).Return(false)
 
 				l = new(mockLog)
-				l.On("Info", "000000000", []zapcore.Field(nil))
-
-				return m, newHandler(m, l), l
+				return m, NewHandler(m, l), l
 			},
 			write: func(in net.Conn) {
 				fmt.Println("writing...")
