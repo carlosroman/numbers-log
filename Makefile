@@ -9,7 +9,7 @@ fmt :
 
 .PHONY : test-ci
 test-ci:
-    @scripts/coverage.sh
+	@scripts/coverage.sh
 
 .PHONY : test
 test :
