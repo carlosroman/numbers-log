@@ -8,7 +8,8 @@ fmt :
 		./...
 
 .PHONY : test-ci
-test-ci:
+test-ci: clean
+	@mkdir -p target
 	@scripts/coverage.sh
 
 .PHONY : test
