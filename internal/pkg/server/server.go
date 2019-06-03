@@ -14,10 +14,10 @@ type listening struct {
 	port            int
 }
 
-func newServer(connectionCount int, host string, port int) *listening {
+func NewServer(connectionCount int, host string, port int, handler handleConn) *listening {
 	return &listening{
 		connectionCount: connectionCount,
-		h:               &handler{},
+		h:               handler,
 		host:            host,
 		port:            port,
 	}
@@ -39,6 +39,7 @@ func (l *listening) Stop() (err error) {
 func (l *listening) Process() (err error) {
 	conn, err := l.listener.Accept()
 	if err != nil {
+		fmt.Println(err)
 		return err
 	}
 
