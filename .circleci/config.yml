@@ -7,8 +7,8 @@ jobs:
     steps:
       - checkout
       - run:
-        name: Testing
-        command: make test
+          name: Testing
+          command: make test
       - run:
-        name: Build
-        command: make build
+          name: Build
+          command: make build
