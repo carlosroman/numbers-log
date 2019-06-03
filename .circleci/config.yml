@@ -6,5 +6,9 @@ jobs:
       - image: circleci/golang:1.12
     steps:
       - checkout
-      - make test
-      - make build
+      - run:
+        name: Testing
+        command: make test
+      - run:
+        name: Build
+        command: make build
