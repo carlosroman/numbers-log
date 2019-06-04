@@ -13,6 +13,6 @@ jobs:
       - run:
           name: Build
           command: make build
-      - run:
-          name: Lint code
-          command: make lint-install lint
+#      - run:
+#          name: Lint code
+#          command: make lint-install lint
