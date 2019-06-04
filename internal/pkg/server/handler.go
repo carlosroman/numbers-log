@@ -41,11 +41,15 @@ func (h *handler) handle(conn net.Conn) error {
 		//}
 
 		msg, err := reader.ReadString('\n')
+		//fmt.Println(fmt.Sprintf("msg: '%s'", msg))
 		if err != nil {
 			if err == io.EOF || err == io.ErrClosedPipe {
 				return nil
 			}
-			conn.Close()
+			if errConn := conn.Close(); errConn != nil {
+				// log errConn
+				return errConn
+			}
 			return err
 		}
 		v := strings.TrimRight(msg, "\n")

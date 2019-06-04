@@ -12,7 +12,11 @@ func main() {
 
 	r := repo.NewRepo()
 	l := getLogger()
-	defer l.Sync()
+	defer func() {
+		if err := l.Sync(); err != nil {
+			os.Exit(3)
+		}
+	}()
 	h := server.NewHandler(r, l)
 	s := server.NewServer(5, "localhost", 4000, h)
 	if err := s.Start(); err != nil {

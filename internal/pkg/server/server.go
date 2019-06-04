@@ -43,6 +43,10 @@ func (l *listening) Process() (err error) {
 		return err
 	}
 
-	go l.h.handle(conn)
+	go func(c net.Conn) {
+		if err := l.h.handle(c); err != nil {
+			fmt.Println(err)
+		}
+	}(conn)
 	return err
 }

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -13,8 +12,6 @@ import (
 )
 
 func Test_handler_handle(t *testing.T) {
-	logger := getLogger()
-	defer logger.Sync()
 	type args struct {
 		conn, in net.Conn
 	}
@@ -109,27 +106,27 @@ func Test_handler_handle(t *testing.T) {
 	}
 }
 
-func getLogger() *zap.Logger {
-	rawJSON := []byte(`{
-	  "level": "info",
-	  "encoding": "console",
-	  "outputPaths": ["stdout"],
-	  "encoderConfig": {
-	    "messageKey": "message",
-	    "levelEncoder": "lowercase"
-	  }
-	}`)
-
-	var cfg zap.Config
-	if err := json.Unmarshal(rawJSON, &cfg); err != nil {
-		panic(err)
-	}
-	logger, err := cfg.Build()
-	if err != nil {
-		panic(err)
-	}
-	return logger
-}
+//func getLogger() *zap.Logger {
+//	rawJSON := []byte(`{
+//	  "level": "info",
+//	  "encoding": "console",
+//	  "outputPaths": ["stdout"],
+//	  "encoderConfig": {
+//	    "messageKey": "message",
+//	    "levelEncoder": "lowercase"
+//	  }
+//	}`)
+//
+//	var cfg zap.Config
+//	if err := json.Unmarshal(rawJSON, &cfg); err != nil {
+//		panic(err)
+//	}
+//	logger, err := cfg.Build()
+//	if err != nil {
+//		panic(err)
+//	}
+//	return logger
+//}
 
 type mockRepo struct {
 	mock.Mock
