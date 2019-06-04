@@ -10,6 +10,7 @@ fmt :
 .PHONY : test-ci
 test-ci: clean
 	@mkdir -p target
+	@chmod +x scripts/coverage.sh
 	@scripts/coverage.sh
 
 .PHONY : test
@@ -21,6 +22,15 @@ test :
 .PHONY : clean
 clean :
 	@rm -rf target/
+
+.PHONY : lint-install
+lint-install :
+	@go get \
+	    github.com/golangci/golangci-lint/cmd/golangci-lint@v1.16.0
+
+.PHONY : lint
+lint :
+	@golangci-lint run
 
 .PHONY : build
 build: clean
