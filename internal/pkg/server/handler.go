@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"fmt"
 	"go.uber.org/zap"
 	"io"
 	"net"
@@ -48,18 +49,27 @@ func (h *handler) handle(conn net.Conn) error {
 			}
 			if errConn := conn.Close(); errConn != nil {
 				// log errConn
+				fmt.Println(errConn)
 				return errConn
 			}
 			return err
 		}
 		v := strings.TrimRight(msg, "\n")
 		if len(v) != 9 {
-			continue
+			if errConn := conn.Close(); errConn != nil {
+				// log errConn
+				return errConn
+			}
+			return nil
 		}
 
 		i, err := strconv.ParseUint(v, 10, 32)
 		if err != nil {
-			continue
+			if errConn := conn.Close(); errConn != nil {
+				// log errConn
+				return errConn
+			}
+			return nil
 		}
 		if h.repo.Add(uint32(i)) {
 			h.logger.Info(v)
