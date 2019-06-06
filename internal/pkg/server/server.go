@@ -13,19 +13,14 @@ type listening struct {
 	h               handleConn
 	host            string
 	port            int
-	ctx             context.Context
-	cancel          context.CancelFunc
 }
 
 func NewServer(connectionCount int, host string, port int, handler handleConn) *listening {
-	ctx, cancel := context.WithCancel(context.Background())
 	return &listening{
 		connectionCount: connectionCount,
 		h:               handler,
 		host:            host,
 		port:            port,
-		ctx:             ctx,
-		cancel:          cancel,
 	}
 }
 
@@ -43,6 +38,7 @@ func (l *listening) Stop() (err error) {
 }
 
 func (l *listening) Process() (err error) {
+	ctx, cancel := context.WithCancel(context.Background())
 	c := make(chan net.Conn, 1)
 	e := make(chan error, 1)
 	for {
@@ -55,14 +51,14 @@ func (l *listening) Process() (err error) {
 			}
 		}()
 		select {
-		case <-l.ctx.Done():
+		case <-ctx.Done():
 			return nil
 		case conn := <-c:
-			go func() {
-				if err := l.h.handle(l.ctx, l.cancel, conn); err != nil {
+			go func(cn net.Conn) {
+				if err := l.h.handle(ctx, cancel, cn); err != nil {
 					e <- err
 				}
-			}()
+			}(conn)
 		case err := <-e:
 			if err != nil {
 				fmt.Println(err)

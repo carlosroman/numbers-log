@@ -27,14 +27,11 @@ func TestStopReturnsError(t *testing.T) {
 }
 
 func TestProcess(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
 	ml := new(mockListener)
 	hm := new(mockHandleConn)
 	l := &listening{
 		listener: ml,
 		h:        hm,
-		ctx:      ctx,
-		cancel:   cancel,
 	}
 	s, c := net.Pipe()
 	defer func() {
@@ -42,56 +39,47 @@ func TestProcess(t *testing.T) {
 		assert.NoError(t, c.Close())
 	}()
 	ml.On("Accept").Return(c, nil)
-	hm.On("handle", ctx, mock.AnythingOfType("context.CancelFunc"), c).Return(nil).
+	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), c).Return(nil).
 		Run(func(args mock.Arguments) {
-			cancel()
+			args.Get(1).(context.CancelFunc)()
 		})
 	err := l.Process()
 	assert.NoError(t, err, "error trying to process connection")
 	ml.AssertExpectations(t)
 	hm.AssertExpectations(t)
 }
+
 func TestProcess_handle_error(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
 	ml := new(mockListener)
 	hm := new(mockHandleConn)
 	l := &listening{
 		listener: ml,
 		h:        hm,
-		ctx:      ctx,
-		cancel:   cancel,
 	}
-	s, c := net.Pipe()
-	defer func() {
-		assert.NoError(t, s.Close())
-		assert.NoError(t, c.Close())
-	}()
-	ml.On("Accept").Return(c, nil)
+	ml.On("Accept").Return(getConn(), nil)
 	expErr := errors.New("some error")
-	hm.On("handle", ctx, mock.AnythingOfType("context.CancelFunc"), c).Return(expErr)
+	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), mock.Anything).Return(expErr)
 	err := l.Process()
 	assert.Errorf(t, err, expErr.Error(), "expected an error")
 	ml.AssertExpectations(t)
 	hm.AssertExpectations(t)
 }
 
+func getConn() net.Conn {
+	server, client := net.Pipe()
+	defer server.Close()
+	return client
+}
+
 func TestProcess_accept_error(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
 	ml := new(mockListener)
 	hm := new(mockHandleConn)
 	l := &listening{
 		listener: ml,
 		h:        hm,
-		ctx:      ctx,
-		cancel:   cancel,
 	}
-	s, c := net.Pipe()
-	defer func() {
-		assert.NoError(t, s.Close())
-		assert.NoError(t, c.Close())
-	}()
 	expErr := errors.New("some error")
-	ml.On("Accept").Return(c, expErr)
+	ml.On("Accept").Return(getConn(), expErr)
 	err := l.Process()
 	assert.Errorf(t, err, expErr.Error(), "expected an error")
 	ml.AssertExpectations(t)
