@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -29,6 +30,8 @@ func Test_handler_handle(t *testing.T) {
 		setup            func() (m *mockRepo, h handleConn, l *mockLog)
 		write            func(in net.Conn)
 		expectConnClosed bool
+		ctx              context.Context
+		cancel           context.CancelFunc
 	}{
 		{
 			name: "SimpleTest",
@@ -142,9 +145,10 @@ func Test_handler_handle(t *testing.T) {
 				done <- true
 			}()
 
+			ctx, cancel := context.WithCancel(context.Background())
 			m, h, l := tt.setup()
 			logger.Debug("handling")
-			err := h.handle(tt.args.conn)
+			err := h.handle(ctx, cancel, tt.args.conn)
 			logger.Debug("done")
 			assert.NoError(t, err)
 			assert.True(t, <-done)

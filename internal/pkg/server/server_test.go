@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -27,11 +28,14 @@ func TestStopReturnsError(t *testing.T) {
 }
 
 func TestProcess(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
 	ml := new(mockListener)
 	hm := new(mockHandleConn)
 	l := &listening{
 		listener: ml,
 		h:        hm,
+		ctx:      ctx,
+		cancel:   cancel,
 	}
 	s, c := net.Pipe()
 	defer func() {
@@ -41,9 +45,10 @@ func TestProcess(t *testing.T) {
 	ml.On("Accept").Return(c, nil).Once()
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	hm.On("handle", c).Return(nil).Run(func(args mock.Arguments) {
-		wg.Done()
-	})
+	hm.On("handle", ctx, mock.AnythingOfType("context.CancelFunc"), c).Return(nil).
+		Run(func(args mock.Arguments) {
+			wg.Done()
+		})
 	assert.NoError(t, l.Process(), "error trying to process connection")
 	wg.Wait()
 	ml.AssertExpectations(t)
@@ -73,6 +78,6 @@ type mockHandleConn struct {
 	mock.Mock
 }
 
-func (m *mockHandleConn) handle(conn net.Conn) error {
-	return m.Called(conn).Error(0)
+func (m *mockHandleConn) handle(ctx context.Context, cancel context.CancelFunc, conn net.Conn) error {
+	return m.Called(ctx, cancel, conn).Error(0)
 }

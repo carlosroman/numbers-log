@@ -2,6 +2,7 @@ package server
 
 import (
 	"bufio"
+	"context"
 	"go.uber.org/zap"
 	"io"
 	"net"
@@ -18,7 +19,7 @@ type log interface {
 }
 
 type handleConn interface {
-	handle(conn net.Conn) error
+	handle(ctx context.Context, cancel context.CancelFunc, conn net.Conn) error
 }
 
 type handler struct {
@@ -33,7 +34,7 @@ func NewHandler(repo add, logger log) handleConn {
 	}
 }
 
-func (h *handler) handle(conn net.Conn) error {
+func (h *handler) handle(ctx context.Context, cancel context.CancelFunc, conn net.Conn) error {
 	reader := bufio.NewReader(conn)
 	c := make(chan string, 1)
 	e := make(chan error, 1)
