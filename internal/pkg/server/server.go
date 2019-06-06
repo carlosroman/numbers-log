@@ -43,16 +43,31 @@ func (l *listening) Stop() (err error) {
 }
 
 func (l *listening) Process() (err error) {
-	conn, err := l.listener.Accept()
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-
-	go func(c net.Conn) {
-		if err := l.h.handle(l.ctx, l.cancel, c); err != nil {
-			fmt.Println(err)
+	c := make(chan net.Conn, 1)
+	e := make(chan error, 1)
+	for {
+		go func() {
+			conn, err := l.listener.Accept()
+			if err != nil {
+				e <- err
+			} else {
+				c <- conn
+			}
+		}()
+		select {
+		case <-l.ctx.Done():
+			return nil
+		case conn := <-c:
+			go func() {
+				if err := l.h.handle(l.ctx, l.cancel, conn); err != nil {
+					e <- err
+				}
+			}()
+		case err := <-e:
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
 		}
-	}(conn)
-	return err
+	}
 }

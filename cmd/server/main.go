@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/carlosroman/numbers-log/internal/pkg/repo"
 	"github.com/carlosroman/numbers-log/internal/pkg/server"
 	"os"
@@ -20,9 +21,8 @@ func main() {
 	if err := s.Start(); err != nil {
 		os.Exit(2)
 	}
-	for {
-		if err := s.Process(); err != nil {
-			os.Exit(1)
-		}
+	if err := s.Process(); err != nil {
+		os.Exit(1)
 	}
+	fmt.Println("Done")
 }
