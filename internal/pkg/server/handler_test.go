@@ -28,10 +28,8 @@ func Test_handler_handle(t *testing.T) {
 		name             string
 		args             args
 		setup            func() (m *mockRepo, h handleConn, l *mockLog)
-		write            func(in net.Conn)
+		write            func(in net.Conn, cxl context.CancelFunc)
 		expectConnClosed bool
-		ctx              context.Context
-		cancel           context.CancelFunc
 	}{
 		{
 			name: "SimpleTest",
@@ -49,7 +47,7 @@ func Test_handler_handle(t *testing.T) {
 
 				return m, NewHandler(m, l), l
 			},
-			write: func(in net.Conn) {
+			write: func(in net.Conn, cxl context.CancelFunc) {
 				logger.Debug("writing...")
 				_, err := in.Write([]byte("000000000\n000000001\n"))
 				assert.NoError(t, err, "error writing")
@@ -59,6 +57,22 @@ func Test_handler_handle(t *testing.T) {
 			},
 		},
 		{
+			name: "CtxDone",
+			args: a(),
+			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
+				m = new(mockRepo)
+				l = new(mockLog)
+				return m, NewHandler(m, l), l
+			},
+			write: func(in net.Conn, cxl context.CancelFunc) {
+				cxl()
+				logger.Debug("writing...")
+				_, err := in.Write([]byte("000000000\n"))
+				assert.EqualError(t, err, io.ErrClosedPipe.Error())
+			},
+			expectConnClosed: true,
+		},
+		{
 			name: "DisconnectTooShort",
 			args: a(),
 			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
@@ -66,7 +80,7 @@ func Test_handler_handle(t *testing.T) {
 				l = new(mockLog)
 				return m, NewHandler(m, l), l
 			},
-			write: func(in net.Conn) {
+			write: func(in net.Conn, cxl context.CancelFunc) {
 				logger.Debug("writing...")
 				_, err := in.Write([]byte("00000000\n"))
 				assert.NoError(t, err, "error writing")
@@ -81,7 +95,7 @@ func Test_handler_handle(t *testing.T) {
 				l = new(mockLog)
 				return m, NewHandler(m, l), l
 			},
-			write: func(in net.Conn) {
+			write: func(in net.Conn, cxl context.CancelFunc) {
 				logger.Debug("writing...")
 				_, err := in.Write([]byte("ABCDEFGHI\n"))
 				assert.NoError(t, err, "error writing")
@@ -96,7 +110,7 @@ func Test_handler_handle(t *testing.T) {
 				l = new(mockLog)
 				return m, NewHandler(m, l), l
 			},
-			write: func(in net.Conn) {
+			write: func(in net.Conn, cxl context.CancelFunc) {
 				logger.Debug("writing...")
 				_, err := in.Write([]byte("0000000000\n"))
 				assert.NoError(t, err, "error writing")
@@ -112,7 +126,7 @@ func Test_handler_handle(t *testing.T) {
 				l = new(mockLog)
 				return m, NewHandler(m, l), l
 			},
-			write: func(in net.Conn) {
+			write: func(in net.Conn, cxl context.CancelFunc) {
 				logger.Debug("writing...")
 				// already present
 				_, err := in.Write([]byte("000000000\n"))
@@ -122,11 +136,13 @@ func Test_handler_handle(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+
+			ctx, cancel := context.WithCancel(context.Background())
 			wg := sync.WaitGroup{}
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				tt.write(tt.args.in)
+				tt.write(tt.args.in, cancel)
 			}()
 
 			done := make(chan bool)
@@ -144,8 +160,6 @@ func Test_handler_handle(t *testing.T) {
 				assert.NoError(t, tt.args.conn.Close())
 				done <- true
 			}()
-
-			ctx, cancel := context.WithCancel(context.Background())
 			m, h, l := tt.setup()
 			logger.Debug("handling")
 			err := h.handle(ctx, cancel, tt.args.conn)

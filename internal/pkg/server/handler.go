@@ -52,6 +52,11 @@ func (h *handler) handle(ctx context.Context, cancel context.CancelFunc, conn ne
 			c <- msg
 		}()
 		select {
+		case <-ctx.Done():
+			if errConn := conn.Close(); errConn != nil {
+				return errConn
+			}
+			return nil
 		case <-d:
 			return nil
 		case err := <-e:
