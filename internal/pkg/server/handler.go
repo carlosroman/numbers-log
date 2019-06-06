@@ -66,6 +66,10 @@ func (h *handler) handle(ctx context.Context, cancel context.CancelFunc, conn ne
 			return err
 		case msg := <-c:
 			v := strings.TrimRight(msg, "\n")
+			if v == "terminate" {
+				cancel()
+				continue
+			}
 			if len(v) != 9 {
 				if errConn := conn.Close(); errConn != nil {
 					// log errConn

@@ -73,6 +73,25 @@ func Test_handler_handle(t *testing.T) {
 			expectConnClosed: true,
 		},
 		{
+			name: "Terminate",
+			args: a(),
+			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
+				m = new(mockRepo)
+				m.On("Add", uint32(0)).Return(true)
+				l = new(mockLog)
+				l.On("Info", "000000000", []zapcore.Field(nil))
+				return m, NewHandler(m, l), l
+			},
+			write: func(in net.Conn, cxl context.CancelFunc) {
+				logger.Debug("writing...")
+				_, err := in.Write([]byte("000000000\nterminate\n"))
+				assert.NoError(t, err, "error writing")
+				_, err = in.Write([]byte("000000001\n"))
+				assert.EqualError(t, err, io.ErrClosedPipe.Error())
+			},
+			expectConnClosed: true,
+		},
+		{
 			name: "DisconnectTooShort",
 			args: a(),
 			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
