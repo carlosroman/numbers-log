@@ -17,10 +17,14 @@ func GetWriter(file string) Writer {
 	cfgJson := fmt.Sprintf(`{
 	  "level": "info",
 	  "encoding": "console",
+	  "development": false,
+	  "disableStacktrace": true,
+	  "disableCaller": true,
 	  "outputPaths": ["%s"],
 	  "encoderConfig": {
 	    "messageKey": "message",
-	    "levelEncoder": "lowercase"
+	    "levelEncoder": "lowercase",
+	    "lineEnding": "\n"
 	  }
 	}`, url.QueryEscape(file))
 	rawJSON := []byte(cfgJson)
