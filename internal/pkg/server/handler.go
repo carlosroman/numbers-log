@@ -2,7 +2,6 @@ package server
 
 import (
 	"bufio"
-	"fmt"
 	"go.uber.org/zap"
 	"io"
 	"net"
@@ -36,43 +35,51 @@ func NewHandler(repo add, logger log) handleConn {
 
 func (h *handler) handle(conn net.Conn) error {
 	reader := bufio.NewReader(conn)
-	for {
-		//if err = conn.SetReadDeadline(time.Now().Add(1* time.Second)); err!=nil{
-		//	return err
-		//}
+	c := make(chan string, 1)
+	e := make(chan error, 1)
+	d := make(chan struct{}, 1)
 
-		msg, err := reader.ReadString('\n')
-		//fmt.Println(fmt.Sprintf("msg: '%s'", msg))
-		if err != nil {
-			if err == io.EOF || err == io.ErrClosedPipe {
-				return nil
+	for {
+		go func() {
+			msg, err := reader.ReadString('\n')
+			if err != nil {
+				if err == io.EOF || err == io.ErrClosedPipe {
+					d <- struct{}{}
+				}
+				e <- err
 			}
+			c <- msg
+		}()
+		select {
+		case <-d:
+			return nil
+		case err := <-e:
 			if errConn := conn.Close(); errConn != nil {
-				// log errConn
-				fmt.Println(errConn)
 				return errConn
 			}
 			return err
-		}
-		v := strings.TrimRight(msg, "\n")
-		if len(v) != 9 {
-			if errConn := conn.Close(); errConn != nil {
-				// log errConn
-				return errConn
+		case msg := <-c:
+			v := strings.TrimRight(msg, "\n")
+			if len(v) != 9 {
+				if errConn := conn.Close(); errConn != nil {
+					// log errConn
+					return errConn
+				}
+				return nil
 			}
-			return nil
-		}
 
-		i, err := strconv.ParseUint(v, 10, 32)
-		if err != nil {
-			if errConn := conn.Close(); errConn != nil {
-				// log errConn
-				return errConn
+			i, err := strconv.ParseUint(v, 10, 32)
+			if err != nil {
+				if errConn := conn.Close(); errConn != nil {
+					// log errConn
+					return errConn
+				}
+				return nil
 			}
-			return nil
-		}
-		if h.repo.Add(uint32(i)) {
-			h.logger.Info(v)
+
+			if h.repo.Add(uint32(i)) {
+				h.logger.Info(v)
+			}
 		}
 	}
 }
