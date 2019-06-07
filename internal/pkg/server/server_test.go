@@ -79,6 +79,37 @@ func TestProcess_accept_error(t *testing.T) {
 	hm.AssertExpectations(t)
 }
 
+func TestProcess_tick(t *testing.T) {
+	ml := new(mockListener)
+	hm := new(mockHandleConn)
+	l := &listening{
+		listener:       ml,
+		h:              hm,
+		tickerDuration: time.Second,
+	}
+
+	asertWg := sync.WaitGroup{}
+	asertWg.Add(1)
+
+	ml.On("Accept").Return(getConn(), nil)
+	var printOne = sync.Once{}
+	hm.On("printReport").Return().Run(func(args mock.Arguments) {
+		defer printOne.Do(asertWg.Done)
+	})
+
+	hmWg := sync.WaitGroup{}
+	hmWg.Add(1)
+	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), mock.Anything).Return(errors.New("some error")).Run(func(args mock.Arguments) {
+		hmWg.Wait()
+	})
+
+	go l.Process()
+
+	asertWg.Wait()
+	ml.AssertExpectations(t)
+	hmWg.Done()
+}
+
 func getConn() net.Conn {
 	server, client := net.Pipe()
 	defer server.Close()
