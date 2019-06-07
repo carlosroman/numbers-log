@@ -11,22 +11,32 @@ type add interface {
 }
 
 func TestAddOkay(t *testing.T) {
-	c := newChecker()
+	mr := &mockRecorder{}
+	mr.On("markUnique").Return()
+	c := newChecker(mr)
 	testAddOkay(t, c)
 }
 
 func TestAddDuplicate(t *testing.T) {
-	c := newChecker()
+	mr := &mockRecorder{}
+	mr.On("markUnique").Return()
+	mr.On("markDuplicate").Return()
+	c := newChecker(mr)
 	testAddDuplicate(t, c)
 }
 
 func TestAddOkayAlt(t *testing.T) {
-	c := NewNumberChecker()
+	mr := &mockRecorder{}
+	mr.On("markUnique").Return()
+	c := NewNumberChecker(mr)
 	testAddOkay(t, c)
 }
 
 func TestAddDuplicateAlt(t *testing.T) {
-	c := NewNumberChecker()
+	mr := &mockRecorder{}
+	mr.On("markUnique").Return()
+	mr.On("markDuplicate").Return()
+	c := NewNumberChecker(mr)
 	testAddDuplicate(t, c)
 }
 
@@ -42,7 +52,7 @@ func testAddDuplicate(t *testing.T, a add) {
 func BenchmarkAdd(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		c := newChecker()
+		c := newChecker(&mockRecorder{})
 		for a := uint32(0); a < (1000000000 / 100); a++ {
 			assert.Equal(b, true, c.IsUnique(a))
 		}
@@ -52,7 +62,7 @@ func BenchmarkAdd(b *testing.B) {
 func BenchmarkAddAlt(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		c := NewNumberChecker()
+		c := NewNumberChecker(&mockRecorder{})
 		for a := uint32(0); a < (1000000000 / 100); a++ {
 			assert.Equal(b, true, c.IsUnique(a))
 		}
@@ -62,7 +72,7 @@ func BenchmarkAddAlt(b *testing.B) {
 func BenchmarkRandomAdd(b *testing.B) {
 	s := rand.NewSource(42)
 	r := rand.New(s)
-	c := newChecker()
+	c := newChecker(&mockRecorder{})
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

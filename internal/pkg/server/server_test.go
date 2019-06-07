@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"net"
+	"sync"
 	"testing"
 )
 
@@ -33,15 +34,11 @@ func TestProcess(t *testing.T) {
 		listener: ml,
 		h:        hm,
 	}
-	s, c := net.Pipe()
-	defer func() {
-		assert.NoError(t, s.Close())
-		assert.NoError(t, c.Close())
-	}()
-	ml.On("Accept").Return(c, nil)
-	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), c).Return(nil).
+	var once sync.Once
+	ml.On("Accept").Return(getConn(), nil)
+	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), mock.Anything).Return(nil).
 		Run(func(args mock.Arguments) {
-			args.Get(1).(context.CancelFunc)()
+			once.Do(args.Get(1).(context.CancelFunc))
 		})
 	err := l.Process()
 	assert.NoError(t, err, "error trying to process connection")
@@ -57,10 +54,9 @@ func TestProcess_handle_error(t *testing.T) {
 		h:        hm,
 	}
 	ml.On("Accept").Return(getConn(), nil)
-	expErr := errors.New("some error")
-	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), mock.Anything).Return(expErr)
+	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), mock.Anything).Return(errors.New("some error"))
 	err := l.Process()
-	assert.Errorf(t, err, expErr.Error(), "expected an error")
+	assert.Errorf(t, err, "some error", "expected an error")
 	ml.AssertExpectations(t)
 	hm.AssertExpectations(t)
 }
@@ -78,10 +74,9 @@ func TestProcess_accept_error(t *testing.T) {
 		listener: ml,
 		h:        hm,
 	}
-	expErr := errors.New("some error")
-	ml.On("Accept").Return(getConn(), expErr)
+	ml.On("Accept").Return(getConn(), errors.New("some error"))
 	err := l.Process()
-	assert.Errorf(t, err, expErr.Error(), "expected an error")
+	assert.Errorf(t, err, "some error", "expected an error")
 	ml.AssertExpectations(t)
 	hm.AssertExpectations(t)
 }

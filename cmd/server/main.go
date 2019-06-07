@@ -8,14 +8,15 @@ import (
 
 func main() {
 
-	r := server.NewNumberChecker()
-	l := server.GetWriter("numbers.log")
+	rec := server.NewRecorder()
+	nc := server.NewNumberChecker(rec)
+	wr := server.GetWriter("numbers.log")
 	defer func() {
-		if err := l.Sync(); err != nil {
+		if err := wr.Sync(); err != nil {
 			os.Exit(3)
 		}
 	}()
-	h := server.NewHandler(r, l)
+	h := server.NewHandler(nc, wr)
 	s := server.NewServer(5, "localhost", 4000, h)
 	if err := s.Start(); err != nil {
 		os.Exit(2)
