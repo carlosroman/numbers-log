@@ -6,10 +6,6 @@ import (
 	"testing"
 )
 
-type add interface {
-	IsUnique(n uint32) (unique bool)
-}
-
 func TestAddOkay(t *testing.T) {
 	mr := &mockRecorder{}
 	mr.On("markUnique").Return()
@@ -40,11 +36,11 @@ func TestAddDuplicateAlt(t *testing.T) {
 	testAddDuplicate(t, c)
 }
 
-func testAddOkay(t *testing.T, a add) {
+func testAddOkay(t *testing.T, a NumberChecker) {
 	assert.Equal(t, true, a.IsUnique(1337))
 }
 
-func testAddDuplicate(t *testing.T, a add) {
+func testAddDuplicate(t *testing.T, a NumberChecker) {
 	a.IsUnique(1337)
 	assert.Equal(t, false, a.IsUnique(1337))
 }

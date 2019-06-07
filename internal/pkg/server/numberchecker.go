@@ -6,6 +6,7 @@ import (
 
 type NumberChecker interface {
 	IsUnique(n uint32) (unique bool)
+	GetReport() string
 }
 
 type checker struct {
@@ -14,12 +15,17 @@ type checker struct {
 	r  Recorder
 }
 
-func newChecker(r Recorder) *checker {
+func newChecker(r Recorder) NumberChecker {
 	return &checker{
 		tm: make(map[uint32]bool),
 		r:  r,
 	}
 }
+
+func (c *checker) GetReport() string {
+	return c.r.getReport()
+}
+
 func (c *checker) IsUnique(n uint32) (unique bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -55,4 +61,8 @@ func (c *checkerImplList) IsUnique(n uint32) (unique bool) {
 	}
 	c.r.markDuplicate()
 	return false
+}
+
+func (c *checkerImplList) GetReport() string {
+	return c.r.getReport()
 }
