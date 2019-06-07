@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/carlosroman/numbers-log/internal/pkg/repo"
 	"github.com/carlosroman/numbers-log/internal/pkg/server"
 	"os"
 )
 
 func main() {
 
-	r := repo.NewRepo()
+	r := server.NewNumberChecker()
 	l := server.GetWriter("numbers.log")
 	defer func() {
 		if err := l.Sync(); err != nil {

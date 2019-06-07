@@ -36,9 +36,9 @@ func Test_handler_handle(t *testing.T) {
 			args: a(),
 			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
 				m = new(mockRepo)
-				m.On("Add", uint32(0)).Return(true)
-				m.On("Add", uint32(1)).Return(true)
-				m.On("Add", uint32(2)).Return(true)
+				m.On("IsUnique", uint32(0)).Return(true)
+				m.On("IsUnique", uint32(1)).Return(true)
+				m.On("IsUnique", uint32(2)).Return(true)
 
 				l = new(mockLog)
 				l.On("Info", "000000000", []zapcore.Field(nil))
@@ -77,7 +77,7 @@ func Test_handler_handle(t *testing.T) {
 			args: a(),
 			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
 				m = new(mockRepo)
-				m.On("Add", uint32(0)).Return(true)
+				m.On("IsUnique", uint32(0)).Return(true)
 				l = new(mockLog)
 				l.On("Info", "000000000", []zapcore.Field(nil))
 				return m, NewHandler(m, l), l
@@ -141,7 +141,7 @@ func Test_handler_handle(t *testing.T) {
 			args: a(),
 			setup: func() (m *mockRepo, h handleConn, l *mockLog) {
 				m = new(mockRepo)
-				m.On("Add", uint32(0)).Return(false)
+				m.On("IsUnique", uint32(0)).Return(false)
 				l = new(mockLog)
 				return m, NewHandler(m, l), l
 			},
@@ -203,7 +203,7 @@ type mockRepo struct {
 	mock.Mock
 }
 
-func (m *mockRepo) Add(n uint32) (unique bool) {
+func (m *mockRepo) IsUnique(n uint32) (unique bool) {
 	args := m.Called(n)
 	return args.Bool(0)
 }

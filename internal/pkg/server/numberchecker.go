@@ -1,8 +1,12 @@
-package repo
+package server
 
 import (
 	"sync"
 )
+
+type NumberChecker interface {
+	IsUnique(n uint32) (unique bool)
+}
 
 type checker struct {
 	mu sync.Mutex
@@ -14,7 +18,7 @@ func newChecker() *checker {
 		tm: make(map[uint32]bool),
 	}
 }
-func (c *checker) Add(n uint32) (unique bool) {
+func (c *checker) IsUnique(n uint32) (unique bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if _, ok := c.tm[n]; !ok {
@@ -29,12 +33,13 @@ type checkerImplList struct {
 	tm []bool
 }
 
-func NewRepo() *checkerImplList {
+func NewNumberChecker() NumberChecker {
 	return &checkerImplList{
 		tm: make([]bool, 1000000000),
 	}
 }
-func (c *checkerImplList) Add(n uint32) (unique bool) {
+
+func (c *checkerImplList) IsUnique(n uint32) (unique bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if ok := c.tm[n]; !ok {

@@ -10,10 +10,6 @@ import (
 	"strings"
 )
 
-type add interface {
-	Add(n uint32) (unique bool)
-}
-
 type log interface {
 	Info(msg string, fields ...zap.Field)
 }
@@ -23,13 +19,13 @@ type handleConn interface {
 }
 
 type handler struct {
-	repo   add
+	nc     NumberChecker
 	logger log
 }
 
-func NewHandler(repo add, logger log) handleConn {
+func NewHandler(numberChecker NumberChecker, logger log) handleConn {
 	return &handler{
-		repo:   repo,
+		nc:     numberChecker,
 		logger: logger,
 	}
 }
@@ -87,7 +83,7 @@ func (h *handler) handle(ctx context.Context, cancel context.CancelFunc, conn ne
 				return nil
 			}
 
-			if h.repo.Add(uint32(i)) {
+			if h.nc.IsUnique(uint32(i)) {
 				h.logger.Info(v)
 			}
 		}
