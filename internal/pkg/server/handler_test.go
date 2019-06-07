@@ -208,6 +208,11 @@ func (m *mockRepo) IsUnique(n uint32) (unique bool) {
 	return args.Bool(0)
 }
 
+func (m *mockRepo) GetReport() string {
+	args := m.Called()
+	return args.String(0)
+}
+
 type mockLog struct {
 	mock.Mock
 }

@@ -8,10 +8,11 @@ import (
 	"net"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestStartAndStop(t *testing.T) {
-	l := NewServer(5, "127.0.0.1", 0, &handler{})
+	l := NewServer(5, "127.0.0.1", 0, &handler{}, time.Minute)
 	defer func() {
 		assert.NoError(t, l.Stop())
 	}()
@@ -19,7 +20,7 @@ func TestStartAndStop(t *testing.T) {
 }
 
 func TestStopReturnsError(t *testing.T) {
-	l := NewServer(1, "127.0.0.1", 0, &handler{})
+	l := NewServer(1, "127.0.0.1", 0, &handler{}, time.Minute)
 	ml := new(mockListener)
 	l.listener = ml
 	expectedErr := errors.New("some error")
@@ -31,8 +32,9 @@ func TestProcess(t *testing.T) {
 	ml := new(mockListener)
 	hm := new(mockHandleConn)
 	l := &listening{
-		listener: ml,
-		h:        hm,
+		listener:       ml,
+		h:              hm,
+		tickerDuration: time.Minute,
 	}
 	var once sync.Once
 	ml.On("Accept").Return(getConn(), nil)
@@ -50,11 +52,27 @@ func TestProcess_handle_error(t *testing.T) {
 	ml := new(mockListener)
 	hm := new(mockHandleConn)
 	l := &listening{
-		listener: ml,
-		h:        hm,
+		listener:       ml,
+		h:              hm,
+		tickerDuration: time.Minute,
 	}
 	ml.On("Accept").Return(getConn(), nil)
 	hm.On("handle", mock.Anything, mock.AnythingOfType("context.CancelFunc"), mock.Anything).Return(errors.New("some error"))
+	err := l.Process()
+	assert.Errorf(t, err, "some error", "expected an error")
+	ml.AssertExpectations(t)
+	hm.AssertExpectations(t)
+}
+
+func TestProcess_accept_error(t *testing.T) {
+	ml := new(mockListener)
+	hm := new(mockHandleConn)
+	l := &listening{
+		listener:       ml,
+		h:              hm,
+		tickerDuration: time.Minute,
+	}
+	ml.On("Accept").Return(getConn(), errors.New("some error"))
 	err := l.Process()
 	assert.Errorf(t, err, "some error", "expected an error")
 	ml.AssertExpectations(t)
@@ -65,20 +83,6 @@ func getConn() net.Conn {
 	server, client := net.Pipe()
 	defer server.Close()
 	return client
-}
-
-func TestProcess_accept_error(t *testing.T) {
-	ml := new(mockListener)
-	hm := new(mockHandleConn)
-	l := &listening{
-		listener: ml,
-		h:        hm,
-	}
-	ml.On("Accept").Return(getConn(), errors.New("some error"))
-	err := l.Process()
-	assert.Errorf(t, err, "some error", "expected an error")
-	ml.AssertExpectations(t)
-	hm.AssertExpectations(t)
 }
 
 type mockListener struct {
@@ -102,6 +106,10 @@ func (m *mockListener) Addr() net.Addr {
 
 type mockHandleConn struct {
 	mock.Mock
+}
+
+func (m *mockHandleConn) printReport() {
+	m.Called()
 }
 
 func (m *mockHandleConn) handle(ctx context.Context, cancel context.CancelFunc, conn net.Conn) error {

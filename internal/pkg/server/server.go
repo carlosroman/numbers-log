@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"golang.org/x/net/netutil"
 	"net"
+	"time"
 )
 
 type listening struct {
@@ -13,14 +14,16 @@ type listening struct {
 	h               handleConn
 	host            string
 	port            int
+	tickerDuration  time.Duration
 }
 
-func NewServer(connectionCount int, host string, port int, handler handleConn) *listening {
+func NewServer(connectionCount int, host string, port int, handler handleConn, tickerDuration time.Duration) *listening {
 	return &listening{
 		connectionCount: connectionCount,
 		h:               handler,
 		host:            host,
 		port:            port,
+		tickerDuration:  tickerDuration,
 	}
 }
 
@@ -41,6 +44,20 @@ func (l *listening) Process() (err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := make(chan net.Conn, 1)
 	e := make(chan error, 1)
+	ticker := time.NewTicker(l.tickerDuration)
+
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				l.h.printReport()
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
 	for {
 		go func() {
 			conn, err := l.listener.Accept()

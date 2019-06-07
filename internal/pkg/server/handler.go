@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"go.uber.org/zap"
 	"io"
 	"net"
@@ -16,6 +17,7 @@ type log interface {
 
 type handleConn interface {
 	handle(ctx context.Context, cancel context.CancelFunc, conn net.Conn) error
+	printReport()
 }
 
 type handler struct {
@@ -28,6 +30,10 @@ func NewHandler(numberChecker NumberChecker, logger log) handleConn {
 		nc:     numberChecker,
 		logger: logger,
 	}
+}
+
+func (h *handler) printReport() {
+	fmt.Println(h.nc.GetReport())
 }
 
 func (h *handler) handle(ctx context.Context, cancel context.CancelFunc, conn net.Conn) error {

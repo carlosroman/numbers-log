@@ -27,7 +27,6 @@ func (r *recorder) markUnique() {
 }
 func (r *recorder) markDuplicate() {
 	r.d.Inc()
-	r.t.Inc()
 }
 func (r *recorder) getReport() string {
 	return fmt.Sprintf(

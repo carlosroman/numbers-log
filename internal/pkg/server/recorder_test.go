@@ -55,10 +55,9 @@ func Test_recorder_getReport(t *testing.T) {
 			for i := 0; i < tt.args.unique; i++ {
 				tt.r.markDuplicate()
 			}
-			total := tt.args.unique + tt.args.dupe
-			exp := fmt.Sprintf("Received %v unique numbers, %v duplicates. Unique total: %v", tt.args.unique, tt.args.dupe, total)
+			exp := fmt.Sprintf("Received %v unique numbers, %v duplicates. Unique total: %v", tt.args.unique, tt.args.dupe, tt.args.unique)
 			assert.Equal(t, exp, tt.r.getReport())
-			exp = fmt.Sprintf("Received %v unique numbers, %v duplicates. Unique total: %v", 0, 0, total)
+			exp = fmt.Sprintf("Received %v unique numbers, %v duplicates. Unique total: %v", 0, 0, tt.args.unique)
 			assert.Equal(t, exp, tt.r.getReport())
 		})
 	}

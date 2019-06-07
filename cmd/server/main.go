@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/carlosroman/numbers-log/internal/pkg/server"
 	"os"
+	"time"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 		}
 	}()
 	h := server.NewHandler(nc, wr)
-	s := server.NewServer(5, "localhost", 4000, h)
+	s := server.NewServer(5, "localhost", 4000, h, 10*time.Second)
 	if err := s.Start(); err != nil {
 		os.Exit(2)
 	}
