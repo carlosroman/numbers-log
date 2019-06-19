@@ -4,6 +4,10 @@ import (
 	"sync"
 )
 
+func NewNumberChecker(r Recorder) NumberChecker {
+	return newBoolListChecker(r)
+}
+
 type NumberChecker interface {
 	IsUnique(n uint32) (unique bool)
 	GetReport() string
@@ -15,7 +19,7 @@ type checker struct {
 	r  Recorder
 }
 
-func newChecker(r Recorder) NumberChecker {
+func newMapChecker(r Recorder) NumberChecker {
 	return &checker{
 		tm: make(map[uint32]bool),
 		r:  r,
@@ -44,7 +48,7 @@ type checkerImplList struct {
 	r  Recorder
 }
 
-func NewNumberChecker(r Recorder) NumberChecker {
+func newAltChecker(r Recorder) NumberChecker {
 	return &checkerImplList{
 		tm: make([]bool, 1000000000),
 		r:  r,
@@ -64,5 +68,46 @@ func (c *checkerImplList) IsUnique(n uint32) (unique bool) {
 }
 
 func (c *checkerImplList) GetReport() string {
+	return c.r.getReport()
+}
+
+type aBool struct {
+	marked bool
+	mu     sync.Mutex
+}
+
+func (a *aBool) mark() bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.marked == false {
+		a.marked = true
+		return true
+	}
+	return false
+
+}
+
+func newBoolListChecker(r Recorder) NumberChecker {
+	return &checkerImplABoolList{
+		tm: make([]aBool, 1000000000),
+		r:  r,
+	}
+}
+
+type checkerImplABoolList struct {
+	tm []aBool
+	r  Recorder
+}
+
+func (c *checkerImplABoolList) IsUnique(n uint32) (unique bool) {
+	if ok := c.tm[n].mark(); ok {
+		c.r.markUnique()
+		return ok
+	}
+	c.r.markDuplicate()
+	return false
+}
+
+func (c *checkerImplABoolList) GetReport() string {
 	return c.r.getReport()
 }

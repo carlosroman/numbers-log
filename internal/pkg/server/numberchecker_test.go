@@ -10,7 +10,7 @@ import (
 func TestAddOkay(t *testing.T) {
 	mr := &mockRecorder{}
 	mr.On("markUnique").Return()
-	c := newChecker(mr)
+	c := newMapChecker(mr)
 	testAddOkay(t, c)
 }
 
@@ -18,14 +18,14 @@ func TestAddDuplicate(t *testing.T) {
 	mr := &mockRecorder{}
 	mr.On("markUnique").Return()
 	mr.On("markDuplicate").Return()
-	c := newChecker(mr)
+	c := newMapChecker(mr)
 	testAddDuplicate(t, c)
 }
 
 func TestAddOkayAlt(t *testing.T) {
 	mr := &mockRecorder{}
 	mr.On("markUnique").Return()
-	c := NewNumberChecker(mr)
+	c := newAltChecker(mr)
 	testAddOkay(t, c)
 }
 
@@ -33,7 +33,22 @@ func TestAddDuplicateAlt(t *testing.T) {
 	mr := &mockRecorder{}
 	mr.On("markUnique").Return()
 	mr.On("markDuplicate").Return()
-	c := NewNumberChecker(mr)
+	c := newAltChecker(mr)
+	testAddDuplicate(t, c)
+}
+
+func TestAddOkayABool(t *testing.T) {
+	mr := &mockRecorder{}
+	mr.On("markUnique").Return()
+	c := newBoolListChecker(mr)
+	testAddOkay(t, c)
+}
+
+func TestAddDuplicateABool(t *testing.T) {
+	mr := &mockRecorder{}
+	mr.On("markUnique").Return()
+	mr.On("markDuplicate").Return()
+	c := newBoolListChecker(mr)
 	testAddDuplicate(t, c)
 }
 
@@ -46,55 +61,86 @@ func testAddDuplicate(t *testing.T, a NumberChecker) {
 	assert.Equal(t, false, a.IsUnique(1337))
 }
 
-func BenchmarkAdd(b *testing.B) {
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		c := newChecker(&noopRecorder{})
-		wg := sync.WaitGroup{}
-		wg.Add(5)
-		max := 1000000
-		for r := 0; r < 5; r++ {
-			go func(rr int) {
-				t := uint32(max * (rr + 1))
-				for a := uint32(max * (rr)); a < t; a++ {
-					assert.Equal(b, true, c.IsUnique(a))
-				}
-				wg.Done()
-			}(r)
-		}
-		wg.Wait()
+func BenchmarkChecker(b *testing.B) {
+	benchmarks := []struct {
+		name    string
+		checker NumberChecker
+	}{
+		{
+			name:    "Map",
+			checker: newMapChecker(&noopRecorder{}),
+		},
+		{
+			name:    "Alt",
+			checker: newAltChecker(&noopRecorder{}),
+		},
+		{
+			name:    "Bool",
+			checker: newBoolListChecker(&noopRecorder{}),
+		},
 	}
-}
 
-func BenchmarkAddAlt(b *testing.B) {
-	b.ReportAllocs()
-	for i := 0; i < b.N; i++ {
-		c := NewNumberChecker(&noopRecorder{})
-		wg := sync.WaitGroup{}
-		wg.Add(5)
-		max := 1000000
-		for r := 0; r < 5; r++ {
-			go func(rr int) {
-				t := uint32(max * (rr + 1))
-				for a := uint32(max * (rr)); a < t; a++ {
-					assert.Equal(b, true, c.IsUnique(a))
+	max := 10000000
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				wg := sync.WaitGroup{}
+				wg.Add(5)
+				for r := 0; r < 5; r++ {
+					go func(rr int) {
+						t := uint32(max * (rr + 1))
+						for a := uint32(max * (rr)); a < t; a++ {
+							bm.checker.IsUnique(a)
+						}
+						wg.Done()
+					}(r)
 				}
-				wg.Done()
-			}(r)
-		}
-		wg.Wait()
+				wg.Wait()
+			}
+		})
 	}
 }
 
 func BenchmarkRandomAdd(b *testing.B) {
-	s := rand.NewSource(42)
-	r := rand.New(s)
-	c := newChecker(&noopRecorder{})
-	b.ReportAllocs()
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		a := r.Int31n(1000000000)
-		c.IsUnique(uint32(a))
+	benchmarks := []struct {
+		name    string
+		checker NumberChecker
+	}{
+		{
+			name:    "Map",
+			checker: newMapChecker(&noopRecorder{}),
+		},
+		{
+			name:    "Alt",
+			checker: newAltChecker(&noopRecorder{}),
+		},
+		{
+			name:    "Bool",
+			checker: newBoolListChecker(&noopRecorder{}),
+		},
+	}
+
+	for _, bm := range benchmarks {
+		b.Run(bm.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for i := 0; i < b.N; i++ {
+				wg := sync.WaitGroup{}
+				wg.Add(5)
+				for r := 0; r < 5; r++ {
+					go func() {
+						s := rand.NewSource(42)
+						rn := rand.New(s)
+						for do := 0; do < 1000; do++ {
+							a := rn.Int63n(100000000)
+							bm.checker.IsUnique(uint32(a))
+						}
+						wg.Done()
+					}()
+				}
+				wg.Wait()
+			}
+		})
 	}
 }
 
