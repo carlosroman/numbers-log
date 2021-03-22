@@ -21,3 +21,18 @@ jobs:
 
       - name: Running unit tests
         run: make ci/test-coverage
+
+  rust-build:
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: rust
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Running linter
+        run: make ci/lint
+
+      - name: Running unit tests
+        run: make ci/test
