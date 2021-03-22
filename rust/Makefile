@@ -17,7 +17,7 @@ CI_DOCKER_TAG			?= ci/rust
 
 .PHONY : fmt
 fmt :
-	@(rustfmt src/*)
+	@(rustfmt src/**/*.rs)
 
 .PHONY : test
 test :
