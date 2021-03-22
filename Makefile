@@ -12,7 +12,8 @@ TEST_FLAGS += -race
 
 GO_TEST ?= test $(TEST_OPTIONS) $(TEST_FLAGS) $(SOURCE_FILES) -run $(TEST_PATTERN) -timeout=10m
 
-DOCKER_CMD				?= $(DOCKER_BIN) run --rm -it -v ${CURDIR}:/app -w /app golang:$(GO_VERSION)
+DOCKER_TTY				?= -t
+DOCKER_CMD				?= $(DOCKER_BIN) run --rm $(DOCKER_TTY) -v ${CURDIR}:/app -w /app golang:$(GO_VERSION)
 CI_CMD					?= $(DOCKER_CMD) make $(DOCKER_TARGET_CMD)
 DOCKER_TARGET_CMD		= $(word 2, $(subst /, ,$(@)))
 
