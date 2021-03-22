@@ -525,5 +525,5 @@ ASALocalRun/
 target/
 *.coverprofile
 .envrc
-
-
+coverage.out
+vendor
