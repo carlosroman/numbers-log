@@ -12,9 +12,9 @@ jobs:
 
   go-build:
     runs-on: ubuntu-20.04
-    # defaults:
-    #   run:
-    #     working-directory: go
+    defaults:
+      run:
+        working-directory: go
 
     steps:
       - uses: actions/checkout@v2

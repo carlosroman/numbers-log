@@ -522,8 +522,4 @@ ASALocalRun/
 #
 # Project ignores
 #
-target/
-*.coverprofile
 .envrc
-coverage.out
-vendor
