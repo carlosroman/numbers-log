@@ -41,7 +41,7 @@ func TestClient_Send(t *testing.T) {
 		_, err = conn.Read(buf)
 		require.NoError(t, err)
 		buffer := bufio.NewReader(bytes.NewBuffer(buf))
-		line,_, err := buffer.ReadLine()
+		line, _, err := buffer.ReadLine()
 		require.NoError(t, err)
 		resp <- string(line)
 	}()

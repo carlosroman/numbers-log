@@ -6,7 +6,6 @@ import (
 	"load-test/pkg"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -33,17 +32,21 @@ func init() {
 func sendNumbers(servAddr string, connections int) (err error) {
 	wg := &sync.WaitGroup{}
 	wg.Add(connections)
-	errChn := make(chan error, connections)
+	errChan := make(chan error, connections)
+	ctChan := make(chan struct{}, connections*1000)
 
-	var counter uint64
-
+	// Count incrementer
 	go func() {
+		counter := uint64(0)
 		ticker := time.NewTicker(10 * time.Second)
 		for {
 			select {
+			case <-ctChan:
+				counter++
 			case <-ticker.C:
-				old := atomic.SwapUint64(&counter, 0)
-				fmt.Println(fmt.Sprintf("Current through put is %v numbers/s", old/10))
+				now := time.Now()
+				fmt.Println(fmt.Sprintf("[%v] Current throughput is %v numbers/s using %v connections", now.Format("15:04:05"), counter/10, connections))
+				counter = 0
 			}
 		}
 	}()
@@ -54,7 +57,7 @@ func sendNumbers(servAddr string, connections int) (err error) {
 			client := pkg.NewClient(servAddr)
 			err = client.Connect()
 			if err != nil {
-				errChn <- err
+				errChan <- err
 				return
 			}
 			r := rand.New(rand.NewSource(1337 + int64(i)))
@@ -62,15 +65,15 @@ func sendNumbers(servAddr string, connections int) (err error) {
 				n := r.Int31n(1000000000)
 				err = client.Send(uint32(n))
 				if err != nil {
-					errChn <- err
+					errChan <- err
 					break
 				}
-				atomic.AddUint64(&counter, 1)
+				ctChan <- struct{}{}
 			}
 		}()
 	}
 	wg.Wait()
 
-	err = <-errChn
+	err = <-errChan
 	return err
 }
