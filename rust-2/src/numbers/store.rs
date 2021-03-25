@@ -6,26 +6,31 @@ use std::thread;
 
 const MAX_NUMBER: usize = 1000000000;
 
-pub struct Store {
+pub struct HashSetStore {
     unique_counter: Arc<AtomicU32>,
     duplicate_counter: Arc<AtomicU64>,
 }
 
-impl Store {
-    pub fn new() -> Store {
+pub trait Store {
+    fn start_processing(&self, buffer_size: usize, resp_tx: SyncSender<String>) -> SyncSender<u32>;
+
+    fn duplicate_counter(&self) -> Arc<AtomicU64>;
+    fn unique_counter(&self) -> Arc<AtomicU32>;
+}
+
+impl HashSetStore {
+    pub fn new() -> Box<dyn Store> {
         let unique_counter = Arc::new(AtomicU32::new(0));
         let duplicate_counter = Arc::new(AtomicU64::new(0));
-        Store {
+        Box::new(HashSetStore {
             unique_counter,
             duplicate_counter,
-        }
+        })
     }
+}
 
-    pub fn start_processing(
-        &self,
-        buffer_size: usize,
-        resp_tx: SyncSender<String>,
-    ) -> SyncSender<u32> {
+impl Store for HashSetStore {
+    fn start_processing(&self, buffer_size: usize, resp_tx: SyncSender<String>) -> SyncSender<u32> {
         let (tx, rx) = sync_channel::<u32>(buffer_size);
         let unique_counter = Arc::clone(&self.unique_counter);
         let duplicate_counter = Arc::clone(&self.duplicate_counter);
@@ -44,11 +49,11 @@ impl Store {
         return tx;
     }
 
-    pub fn duplicate_counter(&self) -> Arc<AtomicU64> {
+    fn duplicate_counter(&self) -> Arc<AtomicU64> {
         self.duplicate_counter.clone()
     }
 
-    pub fn unique_counter(&self) -> Arc<AtomicU32> {
+    fn unique_counter(&self) -> Arc<AtomicU32> {
         self.unique_counter.clone()
     }
 }
@@ -61,7 +66,7 @@ mod tests {
 
     #[test]
     fn store_saves_values() {
-        let s = Store::new();
+        let s = HashSetStore::new();
 
         let (resp_tx, resp_rx) = sync_channel::<String>(0);
         let sender = s.start_processing(0, resp_tx);
