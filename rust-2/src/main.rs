@@ -7,6 +7,7 @@ mod numbers {
     pub mod server;
     pub mod writer;
     pub mod printer;
+    pub mod store;
 }
 
 fn main() {

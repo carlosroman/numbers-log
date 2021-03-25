@@ -1,10 +1,9 @@
 use crate::numbers::printer::Printer;
+use crate::numbers::store::Store;
 use crate::numbers::writer::Writer;
-use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::net::TcpListener;
-use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::mpsc::{channel, sync_channel};
+use std::sync::mpsc::sync_channel;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -23,37 +22,37 @@ impl Server {
         let addr = format!("{}:{}", self.host, self.port);
         info!("Starting server at: {}", addr);
 
-        let unique_counter = Arc::new(AtomicU32::new(0));
-        let duplicate_counter = Arc::new(AtomicU64::new(0));
-        let store = Arc::new(Mutex::new(HashSet::<u32>::new()));
+        // Setup log writer
+        let (writer_sender, writer_receiver) = sync_channel::<String>(5 * 1000);
+        let writer_receiver = Arc::new(Mutex::new(writer_receiver));
+        let file_path = Arc::new(String::from("numbers.log"));
+        let writer = Writer::new(writer_receiver, file_path);
+        writer.start_log_file_output();
 
+        // Setup store
+        let store = Store::new();
+        let sender = store.start_processing(5 * 1000, writer_sender);
+        let duplicate_counter = store.duplicate_counter();
+        let unique_counter = store.unique_counter();
+
+        // Setup stats printer
         let (print_sender, print_receiver) = sync_channel::<String>(1);
         let p = Printer::new(
             Duration::from_secs(10),
             Arc::clone(&unique_counter),
             Arc::clone(&duplicate_counter),
         );
-        p.start_print_timer(print_sender);
+        p.start_stats_timer(print_sender);
         thread::spawn(move || loop {
             let msg = print_receiver.recv().unwrap();
             println!("{}", msg);
         });
 
-        let (tx, rx) = channel::<String>();
-
-        let rx = Arc::new(Mutex::new(rx));
-        let file_path = Arc::new(String::from("numbers.log"));
-        let writer = Writer::new(rx, file_path);
-        writer.start_log_file_output();
-
         // listener thread
         let listener = TcpListener::bind(addr).unwrap();
         for stream in listener.incoming() {
             let stream = stream.unwrap();
-            let store = Arc::clone(&store);
-            let unique_counter = Arc::clone(&unique_counter);
-            let duplicate_counter = Arc::clone(&duplicate_counter);
-            let tx = tx.clone();
+            let num_sender = sender.clone();
             thread::spawn(move || {
                 let mut buf = BufReader::new(stream);
                 loop {
@@ -63,13 +62,7 @@ impl Server {
                         break;
                     }
                     let num: u32 = input.trim().parse().unwrap();
-                    debug!("Got number: {}", &num);
-                    if store.lock().unwrap().insert(num) {
-                        unique_counter.fetch_add(1, Ordering::SeqCst);
-                        tx.send(String::from(input.trim()));
-                    } else {
-                        duplicate_counter.fetch_add(1, Ordering::SeqCst);
-                    }
+                    num_sender.send(num).unwrap();
                 }
             });
         }

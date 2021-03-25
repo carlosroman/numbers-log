@@ -23,7 +23,7 @@ impl Printer {
         }
     }
 
-    pub fn start_print_timer(&self, tx: SyncSender<String>) {
+    pub fn start_stats_timer(&self, tx: SyncSender<String>) {
         let unique_counter = Arc::clone(&self.unique_counter);
         let duplicate_counter = Arc::clone(&self.duplicate_counter);
         let tx = tx.clone();
@@ -61,7 +61,7 @@ mod tests {
 
         let (sender, receiver) = sync_channel::<String>(1);
         let p = Printer::new(Duration::from_millis(10), unique_counter, duplicate_counter);
-        p.start_print_timer(sender.clone());
+        p.start_stats_timer(sender.clone());
 
         let actual = receiver.recv().unwrap();
         assert_eq!(
