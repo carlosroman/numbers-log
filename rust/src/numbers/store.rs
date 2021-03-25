@@ -3,10 +3,13 @@ use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 
 pub trait Store {
-    fn save(&mut self, _val: u32) -> Option<bool> {
-        None
+    fn save(&mut self, _val: u32) -> Option<bool>;
+}
+
+impl Store for Box<dyn Store> {
+    fn save(&mut self, val: u32) -> Option<bool> {
+        (**self).save(val)
     }
-    fn as_any(&self) -> &dyn Any;
 }
 
 pub struct InMemoryStore {
@@ -14,7 +17,7 @@ pub struct InMemoryStore {
 }
 
 impl InMemoryStore {
-    fn new() -> Box<dyn Store> {
+    pub fn new() -> Box<dyn Store> {
         let store = Arc::new(Mutex::new(HashSet::new()));
         Box::new(InMemoryStore { store })
     }
@@ -25,10 +28,6 @@ impl Store for InMemoryStore {
         let store = Arc::clone(&self.store);
         let mut guard = store.lock().unwrap();
         Some(guard.insert(val))
-    }
-
-    fn as_any(&self) -> &dyn Any {
-        self
     }
 }
 

@@ -1,5 +1,4 @@
 use crate::numbers::store::Store;
-use std::cell::RefCell;
 use std::io::{BufRead, BufReader};
 use std::sync::{Arc, Mutex};
 
@@ -25,13 +24,13 @@ pub trait Handler {
 }
 
 pub struct StoreHandler {
-    store: Arc<RefCell<Box<dyn Store>>>,
+    store: Arc<Mutex<dyn Store>>,
     unique_counter: Arc<Mutex<u32>>,
     duplicate_counter: Arc<Mutex<u64>>,
 }
 
 impl StoreHandler {
-    pub fn new(store: Arc<RefCell<Box<dyn Store>>>) -> Arc<StoreHandler> {
+    pub fn new(store: Arc<Mutex<Box<dyn Store>>>) -> Arc<StoreHandler> {
         let unique_counter = Arc::new(Mutex::new(0));
         let duplicate_counter = Arc::new(Mutex::new(0));
         let h = StoreHandler {
@@ -51,12 +50,13 @@ impl Handler for StoreHandler {
             let mut input = String::new();
             buf.read_line(&mut input).unwrap();
             if input.is_empty() {
+                dbg!(input);
                 break;
             }
 
-            let num: u32 = input.trim().parse().unwrap();
-            let store = Arc::clone(&self.store);
-            match store.borrow_mut().save(num) {
+            let num: u32 = dbg!(input).trim().parse().unwrap();
+            let mut store = self.store.lock().unwrap();
+            match store.save(num) {
                 Some(res) => {
                     if res {
                         let counter = Arc::clone(&self.unique_counter);
@@ -69,6 +69,7 @@ impl Handler for StoreHandler {
                     }
                 }
                 _ => {
+                    dbg!("break");
                     break;
                 }
             };
