@@ -1,9 +1,10 @@
+use crate::numbers::printer::Printer;
 use crate::numbers::writer::Writer;
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::net::TcpListener;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::mpsc::channel;
+use std::sync::mpsc::{channel, sync_channel};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -11,31 +12,6 @@ use std::time::Duration;
 pub struct Server {
     port: u16,
     host: String,
-}
-
-fn start_print_timer(unique_counter: &Arc<AtomicU32>, duplicate_counter: &Arc<AtomicU64>) {
-    let unique_counter = Arc::clone(&unique_counter);
-    let duplicate_counter = Arc::clone(&duplicate_counter);
-
-    // timer thread
-    thread::spawn(move || {
-        let interval = Duration::from_secs(10);
-        let mut last_unique_count = 0;
-        let mut last_duplicate_count = 0;
-        loop {
-            thread::sleep(interval);
-            let unique_count = u64::from(unique_counter.load(Ordering::SeqCst));
-            let duplicate_count = duplicate_counter.load(Ordering::SeqCst);
-            println!(
-                "Received {} unique numbers, {} duplicates. Unique total: {}",
-                unique_count - last_unique_count,
-                duplicate_count - last_duplicate_count,
-                unique_count
-            );
-            last_unique_count = unique_count;
-            last_duplicate_count = duplicate_count;
-        }
-    });
 }
 
 impl Server {
@@ -51,7 +27,17 @@ impl Server {
         let duplicate_counter = Arc::new(AtomicU64::new(0));
         let store = Arc::new(Mutex::new(HashSet::<u32>::new()));
 
-        start_print_timer(&unique_counter, &duplicate_counter);
+        let (print_sender, print_receiver) = sync_channel::<String>(1);
+        let p = Printer::new(
+            Duration::from_secs(10),
+            Arc::clone(&unique_counter),
+            Arc::clone(&duplicate_counter),
+        );
+        p.start_print_timer(print_sender);
+        thread::spawn(move || loop {
+            let msg = print_receiver.recv().unwrap();
+            println!("{}", msg);
+        });
 
         let (tx, rx) = channel::<String>();
 

@@ -7,18 +7,12 @@ use std::thread;
 
 pub struct Writer {
     file_path: Arc<String>,
-    worker: Vec<thread::JoinHandle<()>>,
     rx: Arc<Mutex<Receiver<String>>>,
 }
 
 impl Writer {
     pub fn new(rx: Arc<Mutex<Receiver<String>>>, file_path: Arc<String>) -> Writer {
-        let worker = Vec::with_capacity(1);
-        Writer {
-            rx,
-            file_path,
-            worker,
-        }
+        Writer { rx, file_path }
     }
 
     pub fn start_log_file_output(&self) {
@@ -57,9 +51,9 @@ mod tests {
     use super::*;
     use std::env::temp_dir;
     use std::io::Read;
+    use std::sync::mpsc::channel;
     use std::sync::Mutex;
     use std::{thread, time};
-    use std::sync::mpsc::channel;
 
     #[test]
     fn server_passes_bytes_to_processor() {
