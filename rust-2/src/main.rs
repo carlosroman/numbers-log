@@ -5,6 +5,7 @@ use crate::numbers::server::Server;
 
 mod numbers {
     pub mod server;
+    pub mod writer;
 }
 
 fn main() {

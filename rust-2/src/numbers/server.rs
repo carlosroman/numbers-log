@@ -1,10 +1,9 @@
+use crate::numbers::writer::Writer;
 use std::collections::HashSet;
-use std::fs::File;
-use std::io::{BufRead, BufReader, LineWriter, Write};
+use std::io::{BufRead, BufReader};
 use std::net::TcpListener;
-use std::path::Path;
 use std::sync::atomic::{AtomicU32, AtomicU64, Ordering};
-use std::sync::mpsc::{channel, Receiver};
+use std::sync::mpsc::channel;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
@@ -12,32 +11,6 @@ use std::time::Duration;
 pub struct Server {
     port: u16,
     host: String,
-}
-
-fn start_log_file_output(rx: Receiver<String>) {
-    // Create a path to the desired file
-    let path = Path::new("numbers.log");
-    let display = path.display();
-    thread::spawn(move || {
-        let file = match File::create(&path) {
-            Err(why) => panic!("could not create {}: {}", display, why),
-            Ok(file) => file,
-        };
-        let mut file = LineWriter::new(file);
-
-        loop {
-            match rx.recv() {
-                Ok(val) => {
-                    file.write_all(val.as_bytes());
-                    file.write_all(b"\n");
-                }
-                Err(e) => {
-                    error!("Got following error: {:?}", e);
-                    return;
-                }
-            }
-        }
-    });
 }
 
 fn start_print_timer(unique_counter: &Arc<AtomicU32>, duplicate_counter: &Arc<AtomicU64>) {
@@ -81,7 +54,11 @@ impl Server {
         start_print_timer(&unique_counter, &duplicate_counter);
 
         let (tx, rx) = channel::<String>();
-        start_log_file_output(rx);
+
+        let rx = Arc::new(Mutex::new(rx));
+        let file_path = Arc::new(String::from("numbers.log"));
+        let writer = Writer::new(rx, file_path);
+        writer.start_log_file_output();
 
         // listener thread
         let listener = TcpListener::bind(addr).unwrap();
