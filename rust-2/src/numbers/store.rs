@@ -12,14 +12,29 @@ pub struct HashSetStore {
 }
 
 pub trait Store {
-    fn start_processing(&self, buffer_size: usize, resp_tx: SyncSender<String>) -> SyncSender<u32>;
-
+    fn start_processing(&self, buffer_size: usize, resp_tx: SyncSender<String>) -> SyncSender<u32> {
+        let (tx, rx) = sync_channel::<u32>(buffer_size);
+        let unique_counter = Arc::clone(&self.unique_counter());
+        let duplicate_counter = Arc::clone(&self.duplicate_counter());
+        let mut store = self.get_store();
+        thread::spawn(move || loop {
+            let res = rx.recv().unwrap();
+            if store.insert(res) {
+                unique_counter.fetch_add(1, Ordering::SeqCst);
+                resp_tx.send(format!("{:09}", res)).unwrap();
+            } else {
+                duplicate_counter.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+        tx
+    }
     fn duplicate_counter(&self) -> Arc<AtomicU64>;
     fn unique_counter(&self) -> Arc<AtomicU32>;
+    fn get_store(&self) -> Box<dyn HasInsert + Send + 'static>;
 }
 
 impl HashSetStore {
-    pub fn new() -> Box<dyn Store> {
+    pub fn new() -> Box<HashSetStore> {
         let unique_counter = Arc::new(AtomicU32::new(0));
         let duplicate_counter = Arc::new(AtomicU64::new(0));
         Box::new(HashSetStore {
@@ -29,32 +44,28 @@ impl HashSetStore {
     }
 }
 
-impl Store for HashSetStore {
-    fn start_processing(&self, buffer_size: usize, resp_tx: SyncSender<String>) -> SyncSender<u32> {
-        let (tx, rx) = sync_channel::<u32>(buffer_size);
-        let unique_counter = Arc::clone(&self.unique_counter);
-        let duplicate_counter = Arc::clone(&self.duplicate_counter);
-        thread::spawn(move || {
-            let mut store = HashSet::<u32>::with_capacity(MAX_NUMBER);
-            loop {
-                let res = rx.recv().unwrap();
-                if store.insert(res) {
-                    unique_counter.fetch_add(1, Ordering::SeqCst);
-                    resp_tx.send(format!("{:09}", res)).unwrap();
-                } else {
-                    duplicate_counter.fetch_add(1, Ordering::SeqCst);
-                }
-            }
-        });
-        return tx;
-    }
+pub trait HasInsert {
+    fn insert(&mut self, value: u32) -> bool;
+}
 
+impl HasInsert for HashSet<u32> {
+    fn insert(&mut self, value: u32) -> bool {
+        self.insert(value)
+    }
+}
+
+impl Store for HashSetStore {
     fn duplicate_counter(&self) -> Arc<AtomicU64> {
         self.duplicate_counter.clone()
     }
 
     fn unique_counter(&self) -> Arc<AtomicU32> {
         self.unique_counter.clone()
+    }
+
+    fn get_store(&self) -> Box<dyn HasInsert + Send + 'static> {
+        let store = HashSet::<u32>::with_capacity(MAX_NUMBER);
+        Box::new(store)
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::numbers::printer::Printer;
 use crate::numbers::store::HashSetStore;
+use crate::numbers::store::Store;
 use crate::numbers::writer::Writer;
 use std::io::{BufRead, BufReader};
 use std::net::TcpListener;

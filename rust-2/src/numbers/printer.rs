@@ -26,7 +26,6 @@ impl Printer {
     pub fn start_stats_timer(&self, tx: SyncSender<String>) {
         let unique_counter = Arc::clone(&self.unique_counter);
         let duplicate_counter = Arc::clone(&self.duplicate_counter);
-        let tx = tx.clone();
         let interval = self.interval;
         thread::spawn(move || {
             let mut last_unique_count = 0;
