@@ -23,6 +23,10 @@ fmt :
 test :
 	@($(CARGO_BIN) test)
 
+.PHONY : bench
+bench :
+	@($(CARGO_BIN) bench)
+
 .PHONY : start
 start :
 	@($(CARGO_BIN) run)

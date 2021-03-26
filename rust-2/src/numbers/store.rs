@@ -109,8 +109,12 @@ impl Store for BTreeSetStore {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand::prelude::*;
+    use rand::distributions::Standard;
+    use rand_pcg::Pcg32;
     use std::sync::atomic::Ordering;
     use std::time::Duration;
+    use test::Bencher;
 
     #[test]
     fn hash_set_store_saves_values() {
@@ -138,5 +142,31 @@ mod tests {
 
         assert_eq!(1, s.unique_counter().load(Ordering::Acquire));
         assert_eq!(1, s.duplicate_counter().load(Ordering::Acquire));
+    }
+
+    fn store_bench(b: &mut Bencher, s: Box<dyn Store>) {
+        let mut store = s.get_store();
+        let mut seed = 1337;
+        b.iter(|| {
+            let mut rng = Pcg32::seed_from_u64(seed);
+            rng.sample_iter(&Standard).take(1000).for_each(|x| {
+                store.insert(x);
+            });
+            seed = seed + 1;
+        });
+        assert!(!store.insert(1516985983));
+        assert_ne!(seed, 1337);
+    }
+
+    #[bench]
+    fn bench_btree_set_store(b: &mut Bencher) {
+        let s = BTreeSetStore::new();
+        store_bench(b, s);
+    }
+
+    #[bench]
+    fn bench_hash_set_store(b: &mut Bencher) {
+        let s = HashSetStore::new();
+        store_bench(b, s);
     }
 }
