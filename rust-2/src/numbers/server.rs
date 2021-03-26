@@ -1,6 +1,6 @@
 use crate::numbers::printer::Printer;
-use crate::numbers::store::BTreeSetStore;
 use crate::numbers::store::Store;
+use crate::numbers::store::{BTreeSetStore, VecStore};
 use crate::numbers::writer::Writer;
 use std::io::{BufRead, BufReader};
 use std::net::TcpListener;
@@ -31,7 +31,7 @@ impl Server {
         writer.start_log_file_output();
 
         // Setup store
-        let store = BTreeSetStore::new();
+        let store = VecStore::new();
         let sender = store.start_processing(5 * 1000, writer_sender);
         let duplicate_counter = store.duplicate_counter();
         let unique_counter = store.unique_counter();
