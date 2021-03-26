@@ -60,6 +60,22 @@ impl BTreeSetStore {
     }
 }
 
+pub struct VecStore {
+    unique_counter: Arc<AtomicU32>,
+    duplicate_counter: Arc<AtomicU64>,
+}
+
+impl VecStore {
+    pub fn new() -> Box<VecStore> {
+        let unique_counter = Arc::new(AtomicU32::new(0));
+        let duplicate_counter = Arc::new(AtomicU64::new(0));
+        Box::new(VecStore {
+            unique_counter,
+            duplicate_counter,
+        })
+    }
+}
+
 pub trait HasInsert {
     fn insert(&mut self, value: u32) -> bool;
 }
@@ -73,6 +89,16 @@ impl HasInsert for HashSet<u32> {
 impl HasInsert for BTreeSet<u32> {
     fn insert(&mut self, value: u32) -> bool {
         self.insert(value)
+    }
+}
+
+impl HasInsert for Vec<bool> {
+    fn insert(&mut self, value: u32) -> bool {
+        if self[value as usize] {
+            return false;
+        }
+        self[value as usize] = true;
+        true
     }
 }
 
@@ -106,11 +132,29 @@ impl Store for BTreeSetStore {
     }
 }
 
+impl Store for VecStore {
+    fn duplicate_counter(&self) -> Arc<AtomicU64> {
+        self.duplicate_counter.clone()
+    }
+
+    fn unique_counter(&self) -> Arc<AtomicU32> {
+        self.unique_counter.clone()
+    }
+
+    fn get_store(&self) -> Box<dyn HasInsert + Send + 'static> {
+        let mut vec_store: Vec<bool> = Vec::with_capacity(MAX_NUMBER);
+        for _i in 0..MAX_NUMBER {
+            vec_store.push(false);
+        }
+        Box::new(vec_store)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rand::prelude::*;
     use rand::distributions::Standard;
+    use rand::prelude::*;
     use rand_pcg::Pcg32;
     use std::sync::atomic::Ordering;
     use std::time::Duration;
@@ -125,6 +169,12 @@ mod tests {
     #[test]
     fn btree_set_store_saves_values() {
         let s = BTreeSetStore::new();
+        store_test(s);
+    }
+
+    #[test]
+    fn vec_store_saves_values() {
+        let s = VecStore::new();
         store_test(s);
     }
 
@@ -149,12 +199,14 @@ mod tests {
         let mut seed = 1337;
         b.iter(|| {
             let mut rng = Pcg32::seed_from_u64(seed);
-            rng.sample_iter(&Standard).take(1000).for_each(|x| {
-                store.insert(x);
+
+            (0..1000).for_each(|_x| {
+                let val = rng.gen_range(0..MAX_NUMBER);
+                store.insert(val as u32);
             });
             seed = seed + 1;
         });
-        assert!(!store.insert(1516985983));
+        assert!(!store.insert(838037945));
         assert_ne!(seed, 1337);
     }
 
@@ -167,6 +219,12 @@ mod tests {
     #[bench]
     fn bench_hash_set_store(b: &mut Bencher) {
         let s = HashSetStore::new();
+        store_bench(b, s);
+    }
+
+    #[bench]
+    fn bench_vec_store(b: &mut Bencher) {
+        let s = VecStore::new();
         store_bench(b, s);
     }
 }
