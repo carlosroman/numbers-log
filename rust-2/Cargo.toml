@@ -1,0 +1,14 @@
+[package]
+name = "numbers-log"
+version = "0.1.0"
+authors = ["Carlos Roman <carlos@cliche-corp.co.uk>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "0.4.14"
+env_logger = "0.8.3"
+
+[dev-dependencies]
+env_logger = "0.8.3"
