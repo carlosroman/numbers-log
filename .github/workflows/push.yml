@@ -12,12 +12,10 @@ jobs:
 
   go-build:
     runs-on: ubuntu-20.04
-    defaults:
-      run:
-        working-directory: go
 
     steps:
       - uses: actions/checkout@v2
 
       - name: Running unit tests
         run: make ci/test-coverage
+        working-directory: go
