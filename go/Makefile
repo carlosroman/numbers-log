@@ -1,6 +1,6 @@
 # Default GO_BIN to Go binary in PATH
 GO_BIN				?= go
-GO_VERSION			?= 1.14
+GO_VERSION			?= 1.17
 DOCKER_BIN			?= docker
 
 TEST_PATTERN ?=.
