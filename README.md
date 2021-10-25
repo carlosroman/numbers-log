@@ -2,7 +2,6 @@ Go number logger
 ==================
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/carlosroman/numbers-log)](https://goreportcard.com/report/github.com/carlosroman/numbers-log)
-[![CircleCI](https://circleci.com/gh/carlosroman/numbers-log.svg?style=svg)](https://circleci.com/gh/carlosroman/numbers-log)
 [![codecov](https://codecov.io/gh/carlosroman/numbers-log/branch/master/graph/badge.svg)](https://codecov.io/gh/carlosroman/numbers-log)
 
 
